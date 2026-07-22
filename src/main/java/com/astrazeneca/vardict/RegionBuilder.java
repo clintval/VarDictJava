@@ -92,7 +92,40 @@ class RegionBuilder {
             }
             segs.add(thickRegions);
         }
-        return segs;
+        return splitLongRegions(segs);
+    }
+
+    /**
+     * Splits any region longer than {@link Configuration#chunkSize} into consecutive sub-regions of at
+     * most that length, bounding the per-region memory footprint. When chunkSize is 0 (default) the
+     * input is returned unchanged so output stays byte-identical. Sub-regions replace the original in
+     * the same segment group and keep the original chromosome/gene, so processing and output ordering
+     * follow ascending coordinates just as an externally split BED would.
+     * @param segs segments of regions built from -R or a BED file
+     * @return segments with long regions split into windows
+     */
+    List<List<Region>> splitLongRegions(List<List<Region>> segs) {
+        int chunk = config.chunkSize;
+        if (chunk <= 0) {
+            return segs;
+        }
+        List<List<Region>> result = new LinkedList<>();
+        for (List<Region> group : segs) {
+            List<Region> newGroup = new LinkedList<>();
+            for (Region region : group) {
+                if (region.end - region.start + 1 <= chunk) {
+                    newGroup.add(region);
+                    continue;
+                }
+                for (int start = region.start; start <= region.end; start += chunk) {
+                    int end = Math.min(start + chunk - 1, region.end);
+                    newGroup.add(new Region(region.chr, start, end, region.gene,
+                            region.insertStart, region.insertEnd));
+                }
+            }
+            result.add(newGroup);
+        }
+        return result;
     }
 
     /**
@@ -166,7 +199,7 @@ class RegionBuilder {
         if (start > end)
             start = end;
 
-        return singletonList(singletonList(new Region(chr, start, end, gene)));
+        return splitLongRegions(singletonList(singletonList(new Region(chr, start, end, gene))));
     }
 
     /**

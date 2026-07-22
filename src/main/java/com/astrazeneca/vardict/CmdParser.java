@@ -161,6 +161,7 @@ public class CmdParser {
 
         config.threads = Math.max(readThreadsCount(cmd), 1);
         config.referenceExtension = getIntValue(cmd, "Y", 1200);
+        config.chunkSize = getIntValue(cmd, "chunk", 0);
 
         if (cmd.hasOption("adaptor")) {
             config.adaptor.addAll(Arrays.asList(cmd.getOptionValue("adaptor").split(",")));
@@ -588,6 +589,19 @@ public class CmdParser {
                 .withType(Number.class)
                 .isRequired(false)
                 .create("nmfreq"));
+
+        options.addOption(OptionBuilder.withArgName("INT")
+                .hasArg(true)
+                .withDescription("Maximum region length (bp) processed as a single unit. Regions longer than this are split "
+                        + "into consecutive windows of at most this size, bounding peak memory (the per-position variation maps "
+                        + "and aligned-variants map are held for one window at a time rather than the whole interval). This is "
+                        + "equivalent to pre-splitting the BED/-R interval: the Seg column reports the window and calls within "
+                        + "EXTENSION of a window boundary may differ, as with an externally split BED. Not applied in amplicon "
+                        + "mode. Default: 0 (disabled, output byte-identical to un-split).")
+                .withType(Number.class)
+                .isRequired(false)
+                .withLongOpt("chunk")
+                .create("chunk"));
 
         return options;
     }

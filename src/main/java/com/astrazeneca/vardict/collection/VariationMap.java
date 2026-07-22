@@ -14,6 +14,18 @@ public class VariationMap<K,V> extends LinkedHashMap<K,V> {
     public SV sv;
 
     /**
+     * Per-position allele maps almost always hold only 1-3 entries (reference allele plus a few
+     * sequencing-error / variant alleles). The JDK default initial capacity of 16 allocates a
+     * 16-slot backing table for every genomic position, which at high depth over large regions is a
+     * large fraction of the footprint (see heap profiling). A small initial capacity shrinks the
+     * per-position table without changing behaviour: LinkedHashMap preserves insertion iteration
+     * order for any capacity, so output remains byte-identical.
+     */
+    public VariationMap() {
+        super(4, 0.75f);
+    }
+
+    /**
      * Structural variant content
      */
     public static class SV {
