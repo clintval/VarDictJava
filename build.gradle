@@ -17,7 +17,13 @@ afterEvaluate {
     if(project.hasProperty("hprof")) {
         applicationDefaultJvmArgs = ["-Xrunhprof:cpu=times,depth=10", "-Xmx768m"]
     } else {
-        applicationDefaultJvmArgs = ["-Xms768m", "-Xmx8g"]
+        // Peak RSS is dominated by how much heap the collector is allowed to grow into: with a large
+        // -Xmx the default throughput collector lets short-lived garbage accumulate, so RSS tracks
+        // -Xmx rather than the (much smaller) live set. G1 collects incrementally and returns memory,
+        // keeping RSS close to the live set, and string deduplication shrinks the many short allele /
+        // description strings. These flags change footprint only, never output. For very large single
+        // regions (e.g. a whole chromosome via -R) also pass --chunk to bound the per-region live set.
+        applicationDefaultJvmArgs = ["-Xms768m", "-Xmx8g", "-XX:+UseG1GC", "-XX:+UseStringDeduplication"]
     }
 }
 

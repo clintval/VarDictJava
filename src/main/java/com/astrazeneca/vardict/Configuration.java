@@ -198,6 +198,17 @@ public class Configuration {
     public int threads; //-th
 
     /**
+     * Maximum region length (bp) processed as a single unit. Regions longer than this are split into
+     * consecutive sub-regions of at most this size, bounding the per-region memory footprint (all the
+     * per-position variation maps and the aligned-variants map are held for one sub-region at a time
+     * instead of the whole interval). 0 disables splitting (default), preserving byte-identical output.
+     * Splitting is equivalent to pre-splitting the BED/-R interval into consecutive windows: the Seg
+     * column then reports the sub-region, and calls within EXTENSION of a split boundary may differ,
+     * exactly as they would with an externally split BED. Not applied in amplicon mode. -Y / --chunk
+     */
+    public int chunkSize = 0;
+
+    /**
      * The larger seed size
      */
     public static final int SEED_1 = 17;
