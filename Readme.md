@@ -3,7 +3,10 @@
 
 [![CI](https://github.com/joachimwolff/VarDictJava/actions/workflows/ci.yml/badge.svg?branch=optimize-memory)](https://github.com/joachimwolff/VarDictJava/actions/workflows/ci.yml)
 
-> This is the Final Version of VarDict. No longer maintained.
+> **Maintained fork** of [AstraZeneca-NGS/VarDictJava](https://github.com/AstraZeneca-NGS/VarDictJava),
+> which upstream marks as the final version and no longer maintains. This fork (**1.8.4**) fixes VarDict's
+> memory footprint while keeping variant output **byte-identical** to 1.8.3.
+> See [Maintained fork — memory fix](#maintained-fork--memory-fix).
 
 # VarDictJava
 
@@ -24,6 +27,31 @@ The link to is article can be accessed through: https://academic.oup.com/nar/art
 Original coded by Zhongwu Lai 2014.
 
 VarDictJava can run in single sample (see Single sample mode section), paired sample (see Paired variant calling section), or amplicon bias aware modes. As input, VarDictJava takes reference genomes in FASTA format, aligned reads in BAM format, and target regions in BED format.
+
+## Maintained fork — memory fix
+
+This is a community-maintained fork. Upstream (AstraZeneca-NGS) declares **1.8.3 the final version** and no
+longer maintains it; this fork continues as **1.8.4** and addresses VarDict's **memory footprint** while
+keeping variant calls **byte-identical** to 1.8.3 (all **92** integration test cases pass).
+
+**Why memory was a problem.** VarDict builds per-position variation maps for the whole `-R` region at once
+and, by default, lets the JVM heap grow with `-Xmx`, so peak resident memory scales with region size — a
+whole chromosome at high sensitivity (`-f 0`) can climb into tens to hundreds of GB.
+
+**What this fork changes** (footprint only, output unchanged unless noted): smaller default map capacity
+(`VariationMap` 16 → 4), `-XX:+UseG1GC -XX:+UseStringDeduplication` JVM defaults, and an opt-in
+`--chunk INT` that splits long regions to bound the per-region live set.
+
+**A little statistics** — 1 Mb region, `-f 0`, single thread (same jar, footprint only, output byte-identical):
+
+| configuration | peak RSS |
+|---|---|
+| stock VarDictJava 1.8.3 defaults | 5.5 GB |
+| this fork's JVM defaults (`-Xmx8g`, G1GC, string dedup) | **3.5 GB** (~1.6× lower) |
+
+The gap widens with region size. For very large single regions, add `--chunk` (e.g. `--chunk 50000`) to keep
+peak memory bounded regardless of region length; chunking splits the region, so only the `Seg` column
+reflects the sub-regions — the variant calls themselves are unchanged.
 
 ## Requirements
 
