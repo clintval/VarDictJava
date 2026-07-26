@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [ optimize-memory, master, main ]
+  pull_request:
+    branches: [ optimize-memory, master, main ]
+  workflow_dispatch:
+
+# Cancel superseded runs on the same ref.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: gradle test (JDK 8, Gradle 4.10.2)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (with VarDict submodule for installDist)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      # sourceCompatibility/targetCompatibility = 1.8 and the bundled wrapper is Gradle 4.10.2,
+      # which targets Java 8 (the deprecated compile/testCompile configs predate Gradle 7).
+      - name: Set up JDK 8 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '8'
+          cache: gradle
+
+      - name: Show toolchain
+        run: |
+          java -version
+          ./gradlew --version
+
+      # Runs the TestNG suite, including the 92 IntegrationTest cases that byte-compare stdout to the
+      # expected output in testdata/integrationtestcases/*.txt -- i.e. proves the memory/throughput
+      # changes on this branch stay output-identical to stock VarDict 1.8.3.
+      - name: Unit + integration tests
+        run: ./gradlew --no-daemon --stacktrace test
+
+      - name: Build runnable distribution
+        run: ./gradlew --no-daemon --stacktrace installDist
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: |
+            build/reports/tests/
+            build/test-results/
+          if-no-files-found: ignore
