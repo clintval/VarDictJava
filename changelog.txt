@@ -1,3 +1,13 @@
+Version 1.8.4
+    - Community-maintained fork. Upstream (AstraZeneca-NGS) declares 1.8.3 the final version and is no
+      longer maintained; this fork addresses its memory footprint while keeping output byte-identical.
+    - Reduced peak memory: VariationMap initial capacity 16 -> 4; default JVM args add
+      -XX:+UseG1GC -XX:+UseStringDeduplication (footprint only, output unchanged).
+    - Added opt-in region chunking (--chunk INT) to bound the per-region live set on large single
+      regions (e.g. a whole chromosome via -R). Disabled by default (0), so default output is unchanged.
+    - Added GitHub Actions CI running the TestNG integration suite on JDK 8.
+    - Verified byte-identical to 1.8.3 on all 92 integration test cases.
+
 Version 1.8.3
     - Updated submodule and version.
     - Fixed check for introns for the case when deletion is next to insertion.
